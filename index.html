@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-contrast="normal" data-color="blue">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Tools | random-tools.name</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root {
+            --bg: #f4f4f9; --surface: #ffffff; --text: #333333; --text-muted: #666666;
+            --border: #e0e0e0; --shadow: rgba(0,0,0,0.05); --star: #ccc; --star-active: #f1c40f;
+            --primary: #3498db; --primary-hover: #2980b9; --radius: 12px;
+        }
+        [data-theme="dark"] {
+            --bg: #121212; --surface: #1e1e1e; --text: #f0f0f0; --text-muted: #aaaaaa;
+            --border: #333333; --shadow: rgba(0,0,0,0.5);
+        }
+        [data-contrast="high"] {
+            --text: #000000; --text-muted: #000000; --bg: #ffffff; --surface: #ffffff;
+            --border: #000000; border-width: 2px;
+        }
+        [data-theme="dark"][data-contrast="high"] {
+            --text: #ffffff; --text-muted: #ffffff; --bg: #000000; --surface: #000000; --border: #ffffff;
+        }
+        [data-color="green"] { --primary: #2ecc71; --primary-hover: #27ae60; }
+        [data-color="purple"] { --primary: #9b59b6; --primary-hover: #8e44ad; }
+        [data-color="orange"] { --primary: #e67e22; --primary-hover: #d35400; }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; transition: background 0.3s, color 0.3s; }
+        body { margin: 0; padding: 20px; background: var(--bg); color: var(--text); }
+
+        /* Header & Controls */
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
+        h1 { margin: 0; font-size: 24px; display: flex; align-items: center; gap: 10px; }
+        .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        select, button, input[type="text"], input[type="number"], textarea {
+            padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+            background: var(--surface); color: var(--text); font-size: 14px;
+        }
+        button { background: var(--primary); color: #fff; border: none; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        button:hover { background: var(--primary-hover); }
+        .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-icon { padding: 8px; flex-shrink: 0; }
+
+        /* Grid Layout (Up to 5 per row) */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        @media (min-width: 600px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 900px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (min-width: 1200px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (min-width: 1500px) { .grid { grid-template-columns: repeat(5, 1fr); } }
+
+        /* Tool Cards - Forced Square-ish */
+        .card {
+            background: var(--surface); padding: 20px; border-radius: var(--radius);
+            box-shadow: 0 4px 12px var(--shadow); border: 1px solid var(--border);
+            display: flex; flex-direction: column; gap: 12px; position: relative;
+            height: 380px;
+            overflow-y: auto;
+        }
+
+        /* Custom Scrollbar */
+        .card::-webkit-scrollbar { width: 6px; }
+        .card::-webkit-scrollbar-thumb { background-color: var(--border); border-radius: 10px; }
+
+        .card-header { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .card-header h2 { margin: 0; font-size: 17px; }
+        .star { cursor: pointer; font-size: 20px; color: var(--star); user-select: none; }
+        .star.active { color: var(--star-active); }
+
+        /* Tool Specifics */
+        .tool-group { display: flex; flex-direction: column; gap: 5px; }
+        .row { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
+        .row > * { flex: 1; }
+
+        .result-wrapper { display: flex; gap: 5px; align-items: stretch; flex-shrink: 0; }
+        .result-box { flex: 1; padding: 10px; background: var(--bg); border-radius: 6px; word-break: break-all; min-height: 40px; border: 1px solid var(--border); display: flex; align-items: center; }
+
+        .hint { font-size: 12px; color: var(--text-muted); }
+        textarea { resize: none; min-height: 70px; flex-shrink: 0; }
+        input[type="range"] { flex: 2; }
+        #qr-result { text-align: center; flex-grow: 1; display: flex; align-items: center; justify-content: center; min-height: 150px; }
+        #qr-result img { max-width: 150px; max-height: 150px; border-radius: 4px; display: none; margin-top: 10px; }
+
+        .display-text { font-size: 2em; text-align: center; font-family: monospace; justify-content: center; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🛠️ random-tools.name</h1>
+        <div class="controls">
+            <select id="theme-sel" onchange="updateTheme()">
+                <option value="light">Light Mode</option>
+                <option value="dark">Dark Mode</option>
+            </select>
+            <select id="contrast-sel" onchange="updateTheme()">
+                <option value="normal">Normal Contrast</option>
+                <option value="high">High Contrast</option>
+            </select>
+            <select id="color-sel" onchange="updateTheme()">
+                <option value="blue">Blue</option>
+                <option value="green">Green</option>
+                <option value="purple">Purple</option>
+                <option value="orange">Orange</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="grid" id="tools-container">
+
+        <div class="card" data-id="tool-pass">
+            <div class="card-header"><h2>Password Generator</h2><span class="star" onclick="toggleFav(this)">★</span></div>
+            <div class="row">
+                <input type="range" id="pass-len" min="8" max="64" value="16" oninput="document.getElementById('pass-len-val').innerText = this.value; generatePass()">
+                <span style="white-space: nowrap;"><span id="pass-len-val">16</span> ch</span>
+            </div>
+            <div class="row" style="flex-wrap: wrap; font-size: 13px;">
+                <label><input type="checkbox" id="pass-up" checked onchange="generatePass()"> ABC</label>
+                <label><input type="checkbox" id="pass-low" checked onchange="generatePass()"> abc</label>
+                <label><input type="checkbox" id="pass-num" checked onchange="generatePass()"> 123</label>
+                <label><input type="checkbox" id="pass-sym" checked onchange="generatePass()"> #$&</label>
+            </div>
+            <div class="result-wrapper">
+                <div class="result-box" id="pass-res"></div>
+                <button class="btn-secondary btn-icon" onclick="copyTxt('pass-res')" title="Copy">📋</button>
+            </div>
+            <div class="row">
+                <span class="hint" id="pass-entropy">Entropy: ~0 bits</span>
+                <button onclick="generatePass()">Regenerate</button>
+            </div>
+        </div>
+
+        <div class="card" data-id="tool-qr">
+            <div class="card-header"><h2>QR Code Generator</h2><span class="star" onclick="toggleFav(this)">★</span></div>
+            <textarea id="qr-text" placeholder="Enter text or URL"></textarea>
+            <div class="row">
+                <select id="qr-ecc">
+                    <option value="L">ECC L (7%)</option>
+                    <option value="M" selected>ECC M (15%)</option>
+                    <option value="Q">ECC Q (25%)</option>
+                    <option value="H">ECC H (30%)</option>
+                </select>
+                <button onclick="generateQR()">Generate</button>
+            </div>
+            <div id="qr-result"><img id="qr-img" src="" alt="QR Code"></div>
+        </div>
+
+        <div class="card" data-id="tool-base">
+            <div class="card-header"><h2>Base Converter</h2><span class="star" onclick="toggleFav(this)">★</span></div>
+            <input type="text" id="base-input" placeholder="Value to convert" oninput="convertBase()">
+            <div class="row" style="align-items: flex-end;">
+                <div class="tool-group">
+                    <label class="hint">From Base</label>
+                    <input type="number" id="base-from" value="10" min="2" max="36" oninput="convertBase()">
+                </div>
+                <button class="btn-secondary btn-icon" style="flex:0; padding:8px;" onclick="swapBase()" title="Swap Bases">⇄</button>
+                <div class="tool-group">
+                    <label class="hint">To Base</label>
+                    <input type="number" id="base-to" value="2" min="2" max="36" oninput="convertBase()">
+                </div>
+            </div>
+            <div class="result-wrapper">
+                <div class="result-box" id="base-res"></div>
+                <button class="btn-secondary btn-icon" onclick="copyTxt('base-res')" title="Copy">📋</button>
+            </div>
+        </div>
+
+        <div class="card" data-id="tool-case">
+            <div class="card-header"><h2>Case Converter</h2><span class="star" onclick="toggleFav(this)">★</span></div>
+            <textarea id="case-input" placeholder="Enter text here..."></textarea>
+            <div class="row" style="flex-wrap: wrap;">
+                <button class="btn-secondary" onclick="convertCase('upper')">UPPER</button>
+                <button class="btn-secondary" onclick="convertCase('lower')">lower</button>
+                <button class="btn-secondary" onclick="convertCase('title')">Title Case</button>
+            </div>
+            <div class="row">
+                 <button class="btn-secondary" style="width: 100%;" onclick="copyInput('case-input')">📋 Copy Text</button>
+            </div>
+        </div>
+
+        <div class="card" data-id="tool-gib">
+            <div class="card-header"><h2>Gibberish Fixer</h2><span class="star" onclick="toggleFav(this)">★</span></div>
+            <select id="gib-dir" onchange="fixGibberish()">
+                <option value="en2ru">EN Keyboard -> Cyrillic</option>
+                <option value="ru2en">Cyrillic Keyboard -> EN</option>
+            </select>
+            <textarea id="gib-input" placeholder="Type ghbdtn (privet) here..." oninput="fixGibberish()"></textarea>
+            <div class="result-wrapper">
+                <div class="result-box" id="gib-res"></div>
+                <button class="btn-secondary btn-icon" onclick="copyTxt('gib-res')" title="Copy">📋</button>
+            </div>
+        </div>
+
+        <div class="card" data-id="tool-unit">
+            <div class="card-header"><h2>Unit Converter</h2><span class="star" onclick="toggleFav(this)">★</span></div>
+            <select id="unit-type" onchange="updateUnitOptions()">
+                <option value="length">Length</option>
+                <option value="mass">Mass / Weight</option>
+                <option value="temp">Temperature</option>
+            </select>
+            <div class="row">
+                <input type="number" id="unit-val" value="1" oninput="convertUnit()">
+            </div>
+            <div class="row">
+                <select id="unit-from" onchange="convertUnit()"></select>
+                <button class="btn-secondary btn-icon" style="flex:0; padding:8px;" onclick="swapUnit()" title="Swap Units">⇄</button>
+                <select id="unit-to" onchange="convertUnit()"></select>
+            </div>
+            <div class="result-wrapper">
+                <div class="result-box" id="unit-res"></div>
+                <button class="btn-secondary btn-icon" onclick="copyTxt('unit-res')" title="Copy">📋</button>
+            </div>
+        </div>
+
+        <div class="card" data-id="tool-word">
+            <div class="card-header"><h2>Word Counter</h2><span class="star" onclick="toggleFav(this)">★</span></div>
+            <textarea id="word-input" placeholder="Type or paste text..." oninput="countWords()"></textarea>
+            <div class="row text-center" style="margin-top: 10px;">
+                <div class="tool-group"><strong id="wc-words" style="font-size:1.5em">0</strong><span class="hint">Words</span></div>
+                <div class="tool-group"><strong id="wc-chars" style="font-size:1.5em">0</strong><span class="hint">Chars</span></div>
+                <div class="tool-group"><strong id="wc-lines" style="font-size:1.5em">0</strong><span class="hint">Lines</span></div>
+            </div>
+        </div>
+
+        <div class="card" data-id="tool-unix">
+            <div class="card-header"><h2>Unix Epoch Time</h2><span class="star" onclick="toggleFav(this)">★</span></div>
+            <div class="hint">Seconds elapsed since Jan 1, 1970 UTC.</div>
+            <div class="row">
+                <input type="number" id="unix-input" placeholder="Timestamp" oninput="convertUnix()">
+                <button class="btn-secondary" onclick="document.getElementById('unix-input').value = Math.floor(Date.now()/1000); convertUnix();">Now</button>
+            </div>
+            <div class="result-wrapper">
+                <div class="result-box" id="unix-res" style="font-size: 0.9em;"></div>
+                <button class="btn-secondary btn-icon" onclick="copyTxt('unix-res')" title="Copy">📋</button>
+            </div>
+        </div>
+
+        <div class="card" data-id="tool-curr">
+            <div class="card-header"><h2>Currency Rate</h2><span class="star" onclick="toggleFav(this)">★</span></div>
+            <div class="hint" id="curr-status">Fetching live rates...</div>
+            <div class="row">
+                <input type="number" id="curr-val" value="1" oninput="convertCurr()">
+            </div>
+            <div class="row">
+                <select id="curr-from" onchange="convertCurr()"></select>
+                <button class="btn-secondary btn-icon" style="flex:0; padding:8px;" onclick="swapCurr()" title="Swap Currencies">⇄</button>
+                <select id="curr-to" onchange="convertCurr()"></select>
+            </div>
+            <div class="result-wrapper">
+                <div class="result-box" id="curr-res" style="font-weight: bold;"></div>
+                <button class="btn-secondary btn-icon" onclick="copyTxt('curr-res')" title="Copy">📋</button>
+            </div>
+        </div>
+
+        <div class="card" data-id="tool-stopwatch">
+            <div class="card-header"><h2>Stopwatch</h2><span class="star" onclick="toggleFav(this)">★</span></div>
+            <div class="result-box display-text" id="sw-display">00:00.00</div>
+            <div class="row">
+                <button id="sw-toggle" onclick="toggleSw()">Start</button>
+                <button class="btn-secondary" onclick="resetSw()">Reset</button>
+            </div>
+            <div class="row">
+                 <button class="btn-secondary" style="width: 100%;" onclick="copyTxt('sw-display')">📋 Copy Time</button>
+            </div>
+        </div>
+
+        <div class="card" data-id="tool-timer">
+            <div class="card-header"><h2>Timer</h2><span class="star" onclick="toggleFav(this)">★</span></div>
+            <div class="row">
+                <input type="number" id="tm-input" placeholder="Minutes" value="30">
+                <span style="flex: 0; white-space: nowrap;">min</span>
+            </div>
+            <div class="result-box display-text" id="tm-display">30:00</div>
+            <div class="row">
+                <button id="tm-toggle" onclick="toggleTm()">Start</button>
+                <button class="btn-secondary" onclick="resetTm()">Reset</button>
+            </div>
+        </div>
+
+        <div class="card" data-id="tool-clock">
+            <div class="card-header"><h2>World Clock</h2><span class="star" onclick="toggleFav(this)">★</span></div>
+            <select id="clock-region" onchange="updateClock()">
+                <option value="local">Local Time</option>
+                <option value="UTC">UTC</option>
+                <option value="America/New_York">New York (EST/EDT)</option>
+                <option value="Europe/London">London (GMT/BST)</option>
+                <option value="Europe/Helsinki">Helsinki (EET/EEST)</option>
+                <option value="Europe/Moscow">Moscow (MSK)</option>
+                <option value="Asia/Tokyo">Tokyo (JST)</option>
+                <option value="Asia/Dubai">Dubai (GST)</option>
+                <option value="Australia/Sydney">Sydney (AEST/AEDT)</option>
+            </select>
+            <div class="result-wrapper">
+                <div class="result-box display-text" style="font-size: 1.6em;" id="clock-time"></div>
+                <button class="btn-secondary btn-icon" onclick="copyTxt('clock-time')" title="Copy">📋</button>
+            </div>
+            <div class="hint" style="text-align: center; margin-top:10px;" id="clock-date"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- Core Application Logic ---
+        function copyTxt(elementId) {
+            const txt = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(txt);
+        }
+        function copyInput(elementId) {
+            const txt = document.getElementById(elementId).value;
+            navigator.clipboard.writeText(txt);
+        }
+
+        // Initialize default grid order
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.card').forEach((card, index) => {
+                card.dataset.index = index;
+            });
+            loadSettings();
+            generatePass();
+            updateUnitOptions();
+            initCurrency();
+            setInterval(updateClock, 1000);
+            updateTmDisplay(parseInt(document.getElementById('tm-input').value) * 60);
+        });
+
+        function saveSettings() {
+            localStorage.setItem('rt-theme', document.getElementById('theme-sel').value);
+            localStorage.setItem('rt-contrast', document.getElementById('contrast-sel').value);
+            localStorage.setItem('rt-color', document.getElementById('color-sel').value);
+
+            let favs = [];
+            document.querySelectorAll('.card').forEach(c => {
+                if(c.querySelector('.star').classList.contains('active')) favs.push(c.dataset.id);
+            });
+            localStorage.setItem('rt-favs', JSON.stringify(favs));
+        }
+
+        function updateTheme() {
+            document.documentElement.setAttribute('data-theme', document.getElementById('theme-sel').value);
+            document.documentElement.setAttribute('data-contrast', document.getElementById('contrast-sel').value);
+            document.documentElement.setAttribute('data-color', document.getElementById('color-sel').value);
+            saveSettings();
+        }
+
+        function toggleFav(starEl) {
+            starEl.classList.toggle('active');
+            sortGrid();
+            saveSettings();
+        }
+
+        function sortGrid() {
+            const container = document.getElementById('tools-container');
+            const cards = Array.from(container.children);
+            cards.sort((a, b) => {
+                let aFav = a.querySelector('.star').classList.contains('active') ? 1 : 0;
+                let bFav = b.querySelector('.star').classList.contains('active') ? 1 : 0;
+                if (aFav !== bFav) return bFav - aFav;
+                return parseInt(a.dataset.index) - parseInt(b.dataset.index);
+            });
+            cards.forEach(c => container.appendChild(c));
+        }
+
+        function loadSettings() {
+            if(localStorage.getItem('rt-theme')) {
+                document.getElementById('theme-sel').value = localStorage.getItem('rt-theme');
+                document.getElementById('contrast-sel').value = localStorage.getItem('rt-contrast');
+                document.getElementById('color-sel').value = localStorage.getItem('rt-color');
+                updateTheme();
+            }
+            let favs = JSON.parse(localStorage.getItem('rt-favs') || '[]');
+            document.querySelectorAll('.card').forEach(c => {
+                if(favs.includes(c.dataset.id)) c.querySelector('.star').classList.add('active');
+            });
+            sortGrid();
+        }
+
+        // --- 1. Password Generator ---
+        function generatePass() {
+            const len = parseInt(document.getElementById('pass-len').value);
+            const up = document.getElementById('pass-up').checked;
+            const low = document.getElementById('pass-low').checked;
+            const num = document.getElementById('pass-num').checked;
+            const sym = document.getElementById('pass-sym').checked;
+
+            let pool = ''; let poolSize = 0;
+            if(up) { pool += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'; poolSize += 26; }
+            if(low) { pool += 'abcdefghijklmnopqrstuvwxyz'; poolSize += 26; }
+            if(num) { pool += '0123456789'; poolSize += 10; }
+            if(sym) { pool += '!@#$%^&*()_+~`|}{[]:;?><,./-='; poolSize += 32; }
+
+            if(pool === '') { document.getElementById('pass-res').innerText = 'Select a type!'; return; }
+
+            let pass = '';
+            let array = new Uint32Array(len);
+            window.crypto.getRandomValues(array);
+            for(let i=0; i<len; i++) { pass += pool[array[i] % pool.length]; }
+
+            document.getElementById('pass-res').innerText = pass;
+            let entropy = Math.round(len * Math.log2(poolSize));
+            document.getElementById('pass-entropy').innerText = `Entropy: ~${entropy} bits ` + (entropy < 50 ? '🔴' : entropy < 80 ? '🟡' : '🟢');
+        }
+
+        // --- 2. QR Code Generator ---
+        function generateQR() {
+            const txt = document.getElementById('qr-text').value;
+            const ecc = document.getElementById('qr-ecc').value;
+            const img = document.getElementById('qr-img');
+            if(!txt) return;
+            img.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(txt)}&ecc=${ecc}`;
+            img.style.display = 'inline-block';
+        }
+
+        // --- 3. Base Converter ---
+        function swapBase() {
+            const fromInput = document.getElementById('base-from');
+            const toInput = document.getElementById('base-to');
+            const temp = fromInput.value;
+            fromInput.value = toInput.value;
+            toInput.value = temp;
+            convertBase();
+        }
+
+        function convertBase() {
+            const val = document.getElementById('base-input').value;
+            const from = parseInt(document.getElementById('base-from').value);
+            const to = parseInt(document.getElementById('base-to').value);
+            if(!val || isNaN(from) || isNaN(to) || from < 2 || from > 36 || to < 2 || to > 36) return;
+
+            try {
+                let parsed = parseInt(val, from);
+                if(isNaN(parsed)) throw "Invalid";
+                document.getElementById('base-res').innerText = parsed.toString(to).toUpperCase();
+            } catch(e) {
+                document.getElementById('base-res').innerText = "Invalid input.";
+            }
+        }
+
+        // --- 4. Case Converter ---
+        function convertCase(type) {
+            let val = document.getElementById('case-input').value;
+            if(type === 'upper') val = val.toUpperCase();
+            if(type === 'lower') val = val.toLowerCase();
+            if(type === 'title') val = val.replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+            document.getElementById('case-input').value = val;
+        }
+
+        // --- 5. Gibberish Fixer ---
+        const mapEn = "`qwertyuiop[]asdfghjkl;'zxcvbnm,./~QWERTYUIOP{}ASDFGHJKL:\"ZXCVBNM<>?";
+        const mapRu = "ёйцукенгшщзхъфывапролджэячсмитьбю.ЁЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,";
+        function fixGibberish() {
+            const val = document.getElementById('gib-input').value;
+            const dir = document.getElementById('gib-dir').value;
+            let res = '';
+            let fromMap = dir === 'en2ru' ? mapEn : mapRu;
+            let toMap = dir === 'en2ru' ? mapRu : mapEn;
+
+            for(let i=0; i<val.length; i++) {
+                let idx = fromMap.indexOf(val[i]);
+                res += idx !== -1 ? toMap[idx] : val[i];
+            }
+            document.getElementById('gib-res').innerText = res;
+        }
+
+        // --- 6. Unit Converter ---
+        const unitData = {
+            length: { m:1, km:1000, cm:0.01, mm:0.001, mi:1609.34, yd:0.9144, ft:0.3048, in:0.0254 },
+            mass: { kg:1, g:0.001, mg:0.000001, lb:0.453592, oz:0.0283495 },
+            temp: { c:'C', f:'F', k:'K' }
+        };
+        function updateUnitOptions() {
+            const type = document.getElementById('unit-type').value;
+            const opts = Object.keys(unitData[type]).map(k => `<option value="${k}">${k}</option>`).join('');
+            document.getElementById('unit-from').innerHTML = opts;
+            document.getElementById('unit-to').innerHTML = opts;
+            if(type === 'length') document.getElementById('unit-to').value = 'ft';
+            if(type === 'mass') document.getElementById('unit-to').value = 'lb';
+            if(type === 'temp') document.getElementById('unit-to').value = 'f';
+            convertUnit();
+        }
+
+        function swapUnit() {
+            const fromSelect = document.getElementById('unit-from');
+            const toSelect = document.getElementById('unit-to');
+            const temp = fromSelect.value;
+            fromSelect.value = toSelect.value;
+            toSelect.value = temp;
+            convertUnit();
+        }
+
+        function convertUnit() {
+            const type = document.getElementById('unit-type').value;
+            let val = parseFloat(document.getElementById('unit-val').value);
+            const from = document.getElementById('unit-from').value;
+            const to = document.getElementById('unit-to').value;
+            let res = 0;
+
+            if(isNaN(val)) return;
+
+            if(type === 'temp') {
+                if(from === to) res = val;
+                else if(from==='c' && to==='f') res = (val * 9/5) + 32;
+                else if(from==='f' && to==='c') res = (val - 32) * 5/9;
+                else if(from==='c' && to==='k') res = val + 273.15;
+                else if(from==='k' && to==='c') res = val - 273.15;
+                else if(from==='f' && to==='k') res = (val - 32) * 5/9 + 273.15;
+                else if(from==='k' && to==='f') res = (val - 273.15) * 9/5 + 32;
+            } else {
+                let baseVal = val * unitData[type][from];
+                res = baseVal / unitData[type][to];
+            }
+            document.getElementById('unit-res').innerText = res.toPrecision(7).replace(/\.?0+$/,"");
+        }
+
+        // --- 7. Word Counter ---
+        function countWords() {
+            const text = document.getElementById('word-input').value;
+            document.getElementById('wc-chars').innerText = text.length;
+            document.getElementById('wc-words').innerText = text.trim() ? text.trim().split(/\s+/).length : 0;
+            document.getElementById('wc-lines').innerText = text.split(/\r\n|\r|\n/).length;
+        }
+
+        // --- 8. Unix Epoch ---
+        function convertUnix() {
+            const val = parseInt(document.getElementById('unix-input').value);
+            if(isNaN(val)) return;
+            const date = new Date(val * 1000);
+            document.getElementById('unix-res').innerText = date.toUTCString() + "\n" + date.toLocaleString();
+        }
+
+        // --- 9. Currency & Crypto ---
+        let exchangeRates = {};
+        const currencies = ['USD','EUR','GBP','RUB','JPY','AUD','CAD','CHF','CNY','BTC','ETH','XMR','USDT'];
+
+        async function initCurrency() {
+            const fromSel = document.getElementById('curr-from');
+            const toSel = document.getElementById('curr-to');
+            currencies.forEach(c => {
+                fromSel.innerHTML += `<option value="${c}">${c}</option>`;
+                toSel.innerHTML += `<option value="${c}">${c}</option>`;
+            });
+            toSel.value = 'EUR';
+
+            try {
+                let fiatRes = await fetch('https://open.er-api.com/v6/latest/USD');
+                let fiatData = await fiatRes.json();
+                exchangeRates = { ...fiatData.rates };
+
+                let cryptoRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,monero,tether&vs_currencies=usd');
+                let cryptoData = await cryptoRes.json();
+                exchangeRates['BTC'] = 1 / cryptoData.bitcoin.usd;
+                exchangeRates['ETH'] = 1 / cryptoData.ethereum.usd;
+                exchangeRates['XMR'] = 1 / cryptoData.monero.usd;
+                exchangeRates['USDT'] = 1 / cryptoData.tether.usd;
+
+                document.getElementById('curr-status').innerText = "Live rates loaded.";
+                convertCurr();
+            } catch(e) {
+                document.getElementById('curr-status').innerText = "Failed to load rates.";
+            }
+        }
+
+        function swapCurr() {
+            const fromSelect = document.getElementById('curr-from');
+            const toSelect = document.getElementById('curr-to');
+            const temp = fromSelect.value;
+            fromSelect.value = toSelect.value;
+            toSelect.value = temp;
+            convertCurr();
+        }
+
+        function convertCurr() {
+            if(!exchangeRates['USD']) return;
+            let val = parseFloat(document.getElementById('curr-val').value);
+            let from = document.getElementById('curr-from').value;
+            let to = document.getElementById('curr-to').value;
+            if(isNaN(val)) return;
+
+            let inUSD = val / exchangeRates[from];
+            let res = inUSD * exchangeRates[to];
+            document.getElementById('curr-res').innerText = res.toFixed(6) + " " + to;
+        }
+
+        // --- 10. Stopwatch ---
+        let swStart = 0, swElapsed = 0, swInterval, isSwRunning = false;
+        function updateSwDisplay() {
+            let m = String(Math.floor(swElapsed / 60000)).padStart(2, '0');
+            let s = String(Math.floor((swElapsed % 60000) / 1000)).padStart(2, '0');
+            let ms = String(Math.floor((swElapsed % 1000) / 10)).padStart(2, '0');
+            document.getElementById('sw-display').innerText = `${m}:${s}.${ms}`;
+        }
+        function toggleSw() {
+            if(isSwRunning) {
+                clearInterval(swInterval);
+                document.getElementById('sw-toggle').innerText = "Resume";
+            } else {
+                swStart = Date.now() - swElapsed;
+                swInterval = setInterval(() => {
+                    swElapsed = Date.now() - swStart;
+                    updateSwDisplay();
+                }, 10);
+                document.getElementById('sw-toggle').innerText = "Pause";
+            }
+            isSwRunning = !isSwRunning;
+        }
+        function resetSw() {
+            clearInterval(swInterval);
+            isSwRunning = false;
+            swElapsed = 0;
+            updateSwDisplay();
+            document.getElementById('sw-toggle').innerText = "Start";
+        }
+
+        // --- 11. Timer ---
+        let tmInterval, tmRemaining = 0, isTmRunning = false;
+        function updateTmDisplay(seconds) {
+            let m = String(Math.floor(seconds / 60)).padStart(2, '0');
+            let s = String(seconds % 60).padStart(2, '0');
+            document.getElementById('tm-display').innerText = `${m}:${s}`;
+        }
+        function toggleTm() {
+            if(isTmRunning) {
+                clearInterval(tmInterval);
+                document.getElementById('tm-toggle').innerText = "Resume";
+            } else {
+                if(tmRemaining === 0) {
+                    let mins = parseFloat(document.getElementById('tm-input').value) || 0;
+                    tmRemaining = Math.floor(mins * 60);
+                }
+                if(tmRemaining <= 0) return;
+
+                tmInterval = setInterval(() => {
+                    tmRemaining--;
+                    updateTmDisplay(tmRemaining);
+                    if(tmRemaining <= 0) {
+                        clearInterval(tmInterval);
+                        isTmRunning = false;
+                        document.getElementById('tm-toggle').innerText = "Start";
+                        alert("Timer finished!");
+                    }
+                }, 1000);
+                document.getElementById('tm-toggle').innerText = "Pause";
+            }
+            isTmRunning = !isTmRunning;
+        }
+        function resetTm() {
+            clearInterval(tmInterval);
+            isTmRunning = false;
+            tmRemaining = 0;
+            updateTmDisplay(parseInt(document.getElementById('tm-input').value) * 60 || 0);
+            document.getElementById('tm-toggle').innerText = "Start";
+        }
+
+        // --- 12. World Clock ---
+        function updateClock() {
+            const region = document.getElementById('clock-region').value;
+            const now = new Date();
+            let optionsTime = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            let optionsDate = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
+
+            if(region !== 'local') {
+                optionsTime.timeZone = region;
+                optionsDate.timeZone = region;
+            }
+
+            document.getElementById('clock-time').innerText = now.toLocaleTimeString('en-US', optionsTime);
+            document.getElementById('clock-date').innerText = now.toLocaleDateString('en-US', optionsDate);
+        }
+    </script>
+</body>
+</html>
