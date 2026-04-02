@@ -3,3 +3,4 @@
 Ссылка на сайт: https://null512.github.io/random-tools-name-website/
 
 !!! Весь код был написан с использованием LLM !!!
+Был использован Google Gemini
